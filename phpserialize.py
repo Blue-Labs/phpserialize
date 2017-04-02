@@ -283,7 +283,7 @@ except NameError:
     xrange = range
 
 __author__ = 'Armin Ronacher <armin.ronacher@active-4.com>'
-__version__ = '1.3'
+__version__ = '1.4'
 __all__ = ('phpobject', 'convert_member_dict', 'dict_to_list', 'dict_to_tuple',
            'load', 'loads', 'dump', 'dumps', 'serialize', 'unserialize')
 
@@ -549,6 +549,35 @@ def dict_to_list(d):
     except KeyError:
         raise ValueError('dict is not a sequence')
 
+def full_dict_to_list(d, array_hook=dict):
+    """Converts a full dict into a more Pythonic structure. In particular ensure that all list-like structures are handled as Python lists
+    Examples: 
+
+    d1 = {'a': 'b', 'c': {0: '1', 1: '2', 2: {'e': 7}, 3: {2: 8}}}
+    full_dict_to_list(d1) returns
+    {'a': 'b', 'c': ['1', '2', {'e': 7}, {2: 8}]}
+
+    d2 = OrderedDict({'a': 'b', 'c': OrderedDict({0: '1', 1: '2', 2: OrderedDict({'e': 7}), 3: OrderedDict({2: 8})})})
+    full_dict_to_list(d2, OrderedDict) returns
+    OrderedDict([('a', 'b'), ('c', ['1', '2', OrderedDict([('e', 7)]), OrderedDict([(2, 8)])])])
+    """
+    if type(d) is array_hook:
+        keys = list(d.keys())
+        
+        if keys == list(range(0, len(keys))):  #Any array with keys 0..N is considered to be a list
+            return [full_dict_to_list(val) for val in d.values()]
+        elif len(keys) == 1:
+            key = keys[0]
+            return {key : full_dict_to_list(d[key], array_hook)}
+        else:
+            tmp_dict = array_hook()
+            for key in keys:
+                tmp_dict.update( {key : full_dict_to_list(d[key], array_hook)} )
+            return tmp_dict
+    else:
+        return d
+
+    
 
 def dict_to_tuple(d):
     """Converts an ordered dict into a tuple."""
