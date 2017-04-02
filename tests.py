@@ -99,6 +99,18 @@ class PhpSerializeTestCase(unittest.TestCase):
         self.assertEqual(user.username, 'admin')
         self.assertEqual(user.__name__, 'WP_User')
 
+    def test_full_dict_to_list(self):
+        #with normal dict
+        d1 = {'a': 'b', 'c': {0: '1', 1: '2', 2: {'e': 7}, 3: {2: 8}}}
+        d1_cleaned = {'a': 'b', 'c': ['1', '2', {'e': 7}, {2: 8}]}
+        self.assertEqual(phpserialize.full_dict_to_list(d1), d1_cleaned)
+
+        #with OrderedDict as array_hook
+        from collections import OrderedDict
+        d2 = OrderedDict({'a': 'b', 'c': OrderedDict({0: '1', 1: '2', 2: OrderedDict({'e': 7}), 3: OrderedDict({2: 8})})})
+        d2_cleaned = OrderedDict([('a', 'b'), ('c', ['1', '2', OrderedDict([('e', 7)]), OrderedDict([(2, 8)])])])
+        self.assertEqual(phpserialize.full_dict_to_list(d2, OrderedDict), d2_cleaned)
+    
 
 if __name__ == '__main__':
     unittest.main()
