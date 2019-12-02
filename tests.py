@@ -99,6 +99,44 @@ class PhpSerializeTestCase(unittest.TestCase):
         self.assertEqual(user.username, 'admin')
         self.assertEqual(user.__name__, 'WP_User')
 
+    def test_full_dict_to_list(self):
+        #with normal dict
+        d1 = {'a': 'b', 'c': {0: '1', 1: '2', 2: {'e': 7}, 3: {2: 8}}}
+        d1_cleaned = {'a': 'b', 'c': ['1', '2', {'e': 7}, {2: 8}]}
+        self.assertEqual(phpserialize.full_dict_to_list(d1), d1_cleaned)
+
+        #with OrderedDict as array_hook
+        from collections import OrderedDict
+        d2 = OrderedDict({'a': 'b', 'c': OrderedDict({0: '1', 1: '2', 2: OrderedDict({'e': 7}), 3: OrderedDict({2: 8})})})
+        d2_cleaned = OrderedDict([('a', 'b'), ('c', ['1', '2', OrderedDict([('e', 7)]), OrderedDict([(2, 8)])])])
+        self.assertEqual(phpserialize.full_dict_to_list(d2, OrderedDict), d2_cleaned)
+    
+
+    def test_session(self):
+        data = b'foo|a:1:{s:1:"a";s:1:"b";}bar|a:1:{s:1:"c";s:1:"d";}'
+        session = phpserialize.loads(data)
+        self.assertEqual(session, {'foo': {'a': 'b'}, 'bar': {'c': 'd'}})
+
+    def test_loads_unicode_strings(self):
+        data = u's:6:"Björk";'
+        result = phpserialize.loads(data)
+        self.assertEqual(result, u'Björk')
+
+    def test_loads_unicode_dict(self):
+        data = u'a:1:{s:6:"Björk";s:16:"Guðmundsdóttir";}'
+        result = phpserialize.loads(data)
+        self.assertEqual(result, {u'Björk': u'Guðmundsdóttir'})
+
+    def test_basic_unicode_object_hook(self):
+        data = u'O:8:"stdClass":1:{s:4:"name";s:6:"Björk";}'
+        user = phpserialize.loads(data, object_hook=phpserialize.phpobject)
+        self.assertEqual(user.name, u'Björk')
+
+    def test_session_loads_unicode_strings(self):
+        data = u'Björk|a:1:{s:6:"Björk";s:16:"Guðmundsdóttir";}'
+        session = phpserialize.loads(data)
+        self.assertEqual(session, {u'Björk': {u'Björk': u'Guðmundsdóttir'}})
+
 
 if __name__ == '__main__':
     unittest.main()
